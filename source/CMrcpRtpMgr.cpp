@@ -47,6 +47,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  4/1/07      TMB         Cleanup
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpRtpMgr.h"
@@ -97,7 +98,7 @@ CMrcpRtpMgr::~CMrcpRtpMgr()
 ///////////////////////////////////////////////////////////////////////////
 int CMrcpRtpMgr::GetRtpPort()
 {
-	boost::mutex::scoped_lock lock( m_controlMutex);
+	std::lock_guard<std::mutex> lock( m_controlMutex);
 
 	if (m_rtpAudioPort > 51000)
 		m_rtpAudioPort = 41000;
@@ -170,7 +171,7 @@ int CMrcpRtpMgr::StopSession(MrcpAudioHandle l_audioHandle)
 	CMrcpAudioStream* l_audioStreamObj;
 
 	{//scope for lock
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	if ((l_pos = m_streamToRtpMap.find(l_audioHandle)) == m_streamToRtpMap.end())
 	{
 		CLogger::Instance()->Log(LOG_LEVEL_WARNING, *this, " audio handle ptr not found");

@@ -36,8 +36,9 @@
 #include <assert.h>
 #include <windows.h>
 
-#include <boost/bind.hpp>
-#include <boost/format.hpp>
+//#include <boost/bind.hpp>
+//#include <boost/format.hpp>
+#include <functional>
 
 
 const char* CLogger::LogLevelDesc[] = 
@@ -330,14 +331,14 @@ LogObjectTypeEnum CLogger::LogObjectTypeFromString( std::string& a_logObjectType
 ///////////////////////////////////////////////////////////////////////////////
 int CLogger::Start()
 {
-   boost::mutex::scoped_lock l_lock( m_controlMutex);
+   std::lock_guard<std::mutex> l_lock( m_controlMutex);
    if ( m_state == LOGGER_STOPPED )
    {
       m_state = LOGGER_STARTING;
       m_logfile.open( "MrcpClientLibrary.log");
       if ( m_logfile.is_open())
       {
-         m_thread = boost::shared_ptr<boost::thread> ( new boost::thread( boost::bind( &CLogger::ProcessLogItems, this)));
+         m_thread = std::shared_ptr<std::thread> ( new std::thread( std::bind( &CLogger::ProcessLogItems, this)));
       }
       else
       {
@@ -360,7 +361,7 @@ int CLogger::Start()
 ///////////////////////////////////////////////////////////////////////////////
 int CLogger::Stop()
 {
-   boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+   std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
    if ( m_state == LOGGER_RUNNING )
    {
       m_state = LOGGER_STOPPING;
@@ -368,7 +369,7 @@ int CLogger::Stop()
       m_semaphore.notify_one();
       m_thread->join();
 
-      boost::mutex::scoped_lock l_lock( m_queueMutex);
+      std::lock_guard<std::mutex> l_lock( m_queueMutex);
 
       LogItemSptr l_logItem;
       while ( ! m_queue.empty() )
@@ -407,7 +408,7 @@ void CLogger::ProcessLogItems()
 {
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
       m_state = LOGGER_RUNNING;
    }
  
@@ -415,7 +416,7 @@ void CLogger::ProcessLogItems()
 
    LogItemSptr l_logItem;
 
-   boost::mutex::scoped_lock l_semaphoreLock( m_semaphoreMutex);
+   std::unique_lock<std::mutex> l_semaphoreLock( m_semaphoreMutex);
 
    while( m_state == LOGGER_RUNNING )
    {
@@ -426,7 +427,7 @@ void CLogger::ProcessLogItems()
       }
 
       {  // scope for lock
-         boost::mutex::scoped_lock l_lock( m_queueMutex);
+         std::lock_guard<std::mutex> l_lock( m_queueMutex);
          if ( !m_queue.empty())
          {
             l_logItem = m_queue.front();
@@ -471,7 +472,7 @@ void CLogger::OutputLogItem( const LogItemSptr& a_logItem)
 void CLogger::QueueLogItem( LogItemSptr& a_logItem)
 {
    {  // scope for lock
-      boost::mutex::scoped_lock l_lock( m_queueMutex);
+      std::lock_guard<std::mutex> l_lock( m_queueMutex);
       m_queue.push( a_logItem);
    }
    m_semaphore.notify_one();
@@ -516,15 +517,9 @@ LogItemSptr CLogger::BasicMessageHeader( LogLevelEnum a_logLevel)
    struct timeb l_timebuffer;
    ftime( &l_timebuffer );
    struct tm* l_tm_data = localtime( &l_timebuffer.time);
-   boost::format l_timestampFormat(" ! %02d/%02d/%02d %02d:%02d:%02d.%03d ! ");//0x%04X ! ");
-      *l_logItem << l_timestampFormat   
-      % ++l_tm_data->tm_mon
-      % l_tm_data->tm_mday
-      % (( l_tm_data->tm_year + 1900) % 100)
-      % l_tm_data->tm_hour
-      % l_tm_data->tm_min
-      % l_tm_data->tm_sec
-      % l_timebuffer.millitm;
+   //fmt_str l_timestampFormat(" ! %02d/%02d/%02d %02d:%02d:%02d.%03d ! ");//0x%04X ! ");
+   *l_logItem << fmt_str(" ! %02d/%02d/%02d %02d:%02d:%02d.%03d ! ", ++l_tm_data->tm_mon, l_tm_data->tm_mday, ((l_tm_data->tm_year + 1900) % 100), l_tm_data->tm_hour
+       , l_tm_data->tm_min, l_tm_data->tm_sec, l_timebuffer.millitm);
 //	  % MrcpV2RefLib::MrcpUtils::ThreadID();
    return l_logItem;
 }

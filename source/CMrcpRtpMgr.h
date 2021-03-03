@@ -50,7 +50,7 @@
 #include "AMrcpObserverSubject.h"
 #include "AMrcpEventHandler.h"
 
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <map>
 
 namespace MrcpV2RefLib
@@ -91,8 +91,8 @@ namespace MrcpV2RefLib
 		int m_rtpAudioPort;
 
 		MrcpV2RefLib::CMrcpHandleMgr* m_handleMgr;
-		boost::mutex m_controlMutex;
-		boost::mutex m_criticalSection;
+		std::mutex m_controlMutex;
+		std::mutex m_criticalSection;
 	    std::string m_className;
 	    std::string m_name;
 		int m_rtpSessionCnt;

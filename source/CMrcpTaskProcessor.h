@@ -88,13 +88,13 @@ private:
    static CMrcpTaskProcessorByStringMap m_taskProcessors;
 
    CMrcpTaskProcessor(std::string a_idString);
-  // boost::thread* m_thread;
-   boost::shared_ptr<boost::thread> m_thread;
-   boost::mutex m_controlMutex;
-   boost::mutex m_queueMutex;
-   boost::mutex m_semaphoreMutex;
-   static boost::mutex m_singleton;
-   boost::condition m_semaphore;
+  // std::thread* m_thread;
+   std::shared_ptr<std::thread> m_thread;
+   std::mutex m_controlMutex;
+   std::mutex m_queueMutex;
+   std::mutex m_semaphoreMutex;
+   static std::mutex m_singleton;
+   std::condition_variable m_semaphore;
    std::queue< MrcpTasks*> m_queue;
    std::string m_idString;
 

@@ -48,11 +48,15 @@
 #include "Clogger.h"
 #include "ClientInterfaceDefs.h"
 
-#include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/condition.hpp>
+//#include <boost/bind.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/std::shared_ptr.hpp>
+//#include <boost/thread/thread.hpp>
+//#include <boost/thread/condition.hpp>
+#include <mutex>
+#include <memory>
+#include <thread>
+#include <condition_variable>
 #include <list>
 #include <queue>
 
@@ -94,14 +98,14 @@ namespace MrcpV2RefLib
 		void ManageOutboundAudioStream();
 		AudioStateEnum m_state;
 		std::list<std::string> m_audioStreamIn;
-		boost::mutex m_bufferOutboundAudioMutex;
+		std::mutex m_bufferOutboundAudioMutex;
 
 		static std::queue<CAudioContainer*> m_bufferQueue;	
-		static boost::mutex m_bufferOutboundQueueMutex;
-		static boost::mutex m_bufferOutboundQueueConditionMutex;
-		static boost::mutex m_staticParamSetMutex;
-		static boost::condition m_bufferOutboundQueueCondition;
-	//	static boost::shared_ptr<boost::thread> CMrcpAudioStream::m_bufferOutboundQueueProcessingThread;
+		static std::mutex m_bufferOutboundQueueMutex;
+		static std::mutex m_bufferOutboundQueueConditionMutex;
+		static std::mutex m_staticParamSetMutex;
+		static std::condition_variable m_bufferOutboundQueueCondition;
+	//	static std::shared_ptr<std::thread> CMrcpAudioStream::m_bufferOutboundQueueProcessingThread;
 		static bool m_mangeBufferOutboundQueueFlag;
 		static int m_activeThreads;
 
@@ -123,7 +127,7 @@ namespace MrcpV2RefLib
 
 		CMrcpRtp* m_rtpObj;
 
-		boost::mutex m_controlMutex;
+		std::mutex m_controlMutex;
 		std::string m_inboundAudioBuffer;
 		std::string m_className;
 	    std::string m_name;

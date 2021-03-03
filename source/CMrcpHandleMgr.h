@@ -45,7 +45,7 @@
 #ifndef CMrcpHandleMgr_H
 #define CMrcpHandleMgr_H
 
-#include <boost/thread/mutex.hpp>
+//#include <boost/thread/mutex.hpp>
 
 #include <map>
 #include <string>
@@ -89,7 +89,7 @@ namespace MrcpV2RefLib
 		AudioHandleToPointerMap m_hndleAudioPtrMap;
 		CMrcpHandleMgr();
 		int m_handleID;
-		boost::mutex m_criticalSection;
+		std::mutex m_criticalSection;
 
 		std::string m_className;
 	    std::string m_name;

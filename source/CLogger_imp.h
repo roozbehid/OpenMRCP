@@ -31,8 +31,20 @@
 
 #include "Utility.h"
 
-#include <boost/format.hpp>
+//#include <boost/format.hpp>
+#include <cassert>
+template<typename... Args>
+std::string fmt_str(std::string fmt, Args... args)
+{
+    size_t bufferSize = 1000;
+    char* buffer = new char[bufferSize];
+    int n = sprintf(buffer, fmt.c_str(), args...);
+    ////assert(n >= 0 and n < (int)bufferSize - 1 && "check fmt_str output");
 
+    std::string fmtStr(buffer);
+    delete buffer;
+    return fmtStr;
+}
 ///////////////////////////////////////////////////////////////////////////////
 // Function: void CLogger::Log(LogLevelEnum a_logLevel, const TMsg &a_msg)
 //
@@ -121,12 +133,8 @@ template< typename TSource, typename TMethodName>
 LogItemSptr CLogger::SourceInfoMessageHeader( LogLevelEnum a_logLevel, TSource& a_source, const TMethodName& a_methodName)
 {
    LogItemSptr l_logItem = BasicMessageHeader( a_logLevel);
-   boost::format l_sourceInfoFormat("%20.20s ! %20.20s ! %s::%s: ");
-   *l_logItem << l_sourceInfoFormat  
-      % a_source.Name()
-      % a_source.StateDesc()
-      % a_source.ClassName()
-      % a_methodName;
+   
+   *l_logItem << fmt_str("%20.20s ! %20.20s ! %s::%s: ", a_source.Name(), a_source.StateDesc(), a_source.ClassName(), a_methodName);
    return l_logItem;
 }
 

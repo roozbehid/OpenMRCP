@@ -51,6 +51,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  1/2/07      TMB         Modified to return handles in callback structure
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpCmdIdMgr.h"
@@ -104,7 +105,7 @@ CMrcpCmdIdMgr::~CMrcpCmdIdMgr()
 
 MrcpCallBackFunction CMrcpCmdIdMgr::GetCommandObj(long a_id)
 {  //scope for lock
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	if ( m_cmdIdMap.find(a_id) == m_cmdIdMap.end())
 		return MrcpSuccess;
 	else
@@ -136,7 +137,7 @@ int CMrcpCmdIdMgr::RegisterCommandObj(long a_id, MrcpCallBackFunction a_cmdobj)
 		return -1;
 	}
 	{//scope for lock
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	m_cmdIdMap[a_id] = a_cmdobj;
 	}
 	return MrcpSuccess;
@@ -159,7 +160,7 @@ int CMrcpCmdIdMgr::UnRegisterObject(long a_id)
 	CmdByIDMap::iterator l_pos;
 
 	{ //scope for lock
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	if ( (l_pos = m_cmdIdMap.find(a_id)) == m_cmdIdMap.end())
 	{
 		CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, "Command Object not found");
@@ -182,7 +183,7 @@ int CMrcpCmdIdMgr::UnRegisterObject(long a_id)
 ///////////////////////////////////////////////////////////////////////////
 int CMrcpCmdIdMgr::GetReferenceId()
 {  //scope for lock
-	boost::mutex::scoped_lock lock( m_controlMutex);
+	std::lock_guard<std::mutex> lock( m_controlMutex);
 	m_sequenceID++;
 
 	return m_sequenceID;
@@ -207,7 +208,7 @@ int CMrcpCmdIdMgr::PerformCallbackProcessing(MRCP_RESULT_STRUCT a_callResults,bo
 	CLogger::Instance()->Log(LOG_LEVEL_INFO, *this, "Entering Routine");
 
 	{//scope for lock
-	boost::mutex::scoped_lock lock (m_criticalSection);
+	std::lock_guard<std::mutex> lock (m_criticalSection);
 
 	if ( (l_callBackItr = m_cmdIdMap.find(a_callResults.referenceNumber)) == m_cmdIdMap.end())
 		if (a_defaultCallBack != NULL)

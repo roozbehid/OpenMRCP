@@ -64,6 +64,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  4/1/07      TMB         Cleanup
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpSystem.h"
@@ -130,7 +131,7 @@ int CMrcpSystem::Start()
 {
 	Name("Start");
 	{
-	boost::mutex::scoped_lock l_lock (m_controlMutex);
+	std::lock_guard<std::mutex> l_lock (m_controlMutex);
 		if (m_state != SYSTEM_STOPPED)
 		{
 			std::string l_errorInfo = "System already started ";
@@ -169,7 +170,7 @@ int CMrcpSystem::Stop()
 {
 	Name("Stop");
 
-	boost::mutex::scoped_lock l_controlLock(m_controlMutex);
+	std::lock_guard<std::mutex> l_controlLock(m_controlMutex);
     CLogger::Instance()->Log( LOG_LEVEL_INFO,*this,"System Stopping");
 	
 
@@ -203,7 +204,7 @@ int CMrcpSystem::OpenSession(RESOURCE_CFG_STRUCT* a_resourceCfg)
 
 	{
     	CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Opening Session");
-		boost::mutex::scoped_lock l_controlLock(m_controlMutex);
+		std::lock_guard<std::mutex> l_controlLock(m_controlMutex);
 		if (m_state != SYSTEM_RUNNING)
 		{
 			std::string l_errorInfo = "Error System not running: " + AsString(m_state);
@@ -229,7 +230,7 @@ int CMrcpSystem::AddSessionResources(MrcpSessionHandle a_sessionHandle,MrcpResou
 	   Name("AddSessionResources");
 	    CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Adding Session Resources");
 	   {//scope for lock
-		boost::mutex::scoped_lock l_controlLock(m_controlMutex);
+		std::lock_guard<std::mutex> l_controlLock(m_controlMutex);
 		if (m_state != SYSTEM_RUNNING)
 		{
 			std::string l_errorInfo = "Error System not running: " + AsString(m_state);

@@ -51,6 +51,7 @@
 //	Date		Initial 	Description
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
+//  3/3/21		Roozbeh G	Boost removal
 //
 ///////////////////////////////////////////////////////////////////////////////
 #include "CMrcpHandleMgr.h"
@@ -108,7 +109,7 @@ int CMrcpHandleMgr::RegisterPointer(CMrcpSession* a_objPointer)
 			return -1;
 		}
 	{ //scope for lock
-		boost::mutex::scoped_lock lock( m_criticalSection);
+		std::lock_guard<std::mutex> lock( m_criticalSection);
 		m_handleID++;
 		m_hndlePtrMap[m_handleID] = a_objPointer;
 	}
@@ -133,7 +134,7 @@ int CMrcpHandleMgr::RegisterAudioPointer(CMrcpAudioStream* a_objPointer)
 			return -1;
 		}
 	{  //scope for lock
-		boost::mutex::scoped_lock lock( m_criticalSection);
+		std::lock_guard<std::mutex> lock( m_criticalSection);
 		m_handleID++;
 		m_hndleAudioPtrMap[m_handleID] = a_objPointer;
 	}
@@ -158,7 +159,7 @@ int CMrcpHandleMgr::UnregisterPointer(int a_handle,std::string a_pointerType)
 	if (a_pointerType == "Session")
 	{
 		{  //scope for lock
-		boost::mutex::scoped_lock lock( m_criticalSection);
+		std::lock_guard<std::mutex> lock( m_criticalSection);
 		if ( (l_pos = m_hndlePtrMap.find(a_handle)) == m_hndlePtrMap.end())
 		{
 			CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, "handle not found");
@@ -170,7 +171,7 @@ int CMrcpHandleMgr::UnregisterPointer(int a_handle,std::string a_pointerType)
 	if (a_pointerType == "Audio")
 	{
 		{//scope for lock
-		boost::mutex::scoped_lock lock( m_criticalSection);
+		std::lock_guard<std::mutex> lock( m_criticalSection);
 		if ( (l_audioPos = m_hndleAudioPtrMap.find(a_handle)) == m_hndleAudioPtrMap.end())
 		{
 			CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, "audio handle not found");
@@ -195,7 +196,7 @@ CMrcpSession* CMrcpHandleMgr::RetrievePointer (int a_handle)
 	Name("RetrievePointer");
 	HandleToPointerMap::iterator l_pos;
 	{  //scope for lock
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	if ((l_pos = m_hndlePtrMap.find(a_handle)) == m_hndlePtrMap.end())
 	{
 		CLogger::Instance()->Log(LOG_LEVEL_WARNING, *this, "handle ptr not found");
@@ -219,7 +220,7 @@ CMrcpAudioStream* CMrcpHandleMgr::RetrieveAudioPointer (int a_handle)
 	Name("RetrieveAudioPointer");
 	AudioHandleToPointerMap::iterator l_pos;
 
-	boost::mutex::scoped_lock lock( m_criticalSection);
+	std::lock_guard<std::mutex> lock( m_criticalSection);
 	if ((l_pos = m_hndleAudioPtrMap.find(a_handle)) == m_hndleAudioPtrMap.end())
 	{
 		CLogger::Instance()->Log(LOG_LEVEL_WARNING, *this, "audio handle ptr not found");

@@ -42,6 +42,7 @@
 //	Revisions:
 //	Date		Initial 	Description
 //	----		------- 	-----------
+//  3/3/21		Roozbeh G	Boost removal
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -488,7 +489,7 @@ int MrcpUtils::GetLengthDiff ( const char * input, int & num_subst )
 	num_subst = 0 ; 
 	while ( ( start_ptr = strstr ( start_ptr, enc_start ) ) != NULL ) 
 	{
-		char * end_ptr = strstr ( start_ptr, enc_end ) ; 
+		char * end_ptr = strstr ( (char*)start_ptr, enc_end ) ; 
 		if ( end_ptr )
 		{
 			num_wide += ( end_ptr - start_ptr - strlen ( enc_start ) ) / 4 ; 

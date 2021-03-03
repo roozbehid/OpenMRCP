@@ -45,7 +45,8 @@
 #ifndef Singleton_h
 #define Singleton_h
 
-#include <boost/thread/mutex.hpp>
+//#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 	template <typename T>
 	class Singleton {
@@ -54,7 +55,7 @@
 			// first check
 			if (instance_ == 0) {
 				// scoped lock
-				boost::mutex::scoped_lock lock(mutex_);
+				std::lock_guard<std::mutex> lock(mutex_);
  
 				// second check
 				if (instance_ == 0)
@@ -64,13 +65,13 @@
 		}
 	private:
 		static T *instance_;
-		static boost::mutex mutex_;
+		static std::mutex mutex_;
 	};
 
 	template <class T>
 	T *Singleton<T>::instance_ = 0;
 
 	template <class T>
-	boost::mutex Singleton<T>::mutex_;
+	std::mutex Singleton<T>::mutex_;
 
 #endif

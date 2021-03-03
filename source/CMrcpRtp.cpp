@@ -52,6 +52,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  4/1/07      TMB         cleanup 
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 #include <winsock2.h>
 #include <time.h>
@@ -67,6 +68,7 @@
 #include <sys/stat.h>
 #endif
 
+#include <functional>
 #include "CMrcpRtp.h"
 #include "CMrcpAudioStream.h"
 #include "MrcpUtils.h"
@@ -156,7 +158,7 @@ int CMrcpRtp::Start(CMrcpAudioStream* a_audioStream )
 				return -1;
 			}
 		}
-		m_inboundThread = boost::shared_ptr<boost::thread> ( new boost::thread( boost::bind( &CMrcpRtp::ProcessInboundRtp, this)));
+		m_inboundThread = std::shared_ptr<std::thread> ( new std::thread( std::bind( &CMrcpRtp::ProcessInboundRtp, this)));
 	}
 
 	return MrcpSuccess;
@@ -175,7 +177,7 @@ int CMrcpRtp::Stop()
 
 	CLogger::Instance()->Log(LOG_LEVEL_INFO, *this,"Entering");
 	{//scope for lock
-	boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+	std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
 	if ( m_asrSession )
 	{
 		MrcpUtils::CloseSocket(m_clientRtpSocket);

@@ -51,7 +51,8 @@
 
 #include <list>
 #include <map>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
+//#include <boost/thread/mutex.hpp>
 
 
 const int ALL_NOTIFICATIONS   = 0xFFFFFFFF;
@@ -77,7 +78,7 @@ namespace MrcpV2RefLib
 		AMrcpNotificationListMap m_notifications;
 		void RemoveObserver(AMrcpEventHandler* observer,AMrcpTaskHandlerList* a_observerList);
 
-		boost::mutex m_observerMutex;
+		std::mutex m_observerMutex;
 
 	};
 }//end namespace

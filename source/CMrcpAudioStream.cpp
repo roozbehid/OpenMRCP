@@ -50,6 +50,7 @@
 //  1/2/07      TMB         Modified to return handles in callback structure
 //  4/1/07      TMB         Stubbed out static thread for outbound audio - should
 //					        revisit
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpRtp.h"
@@ -63,11 +64,11 @@
 namespace MrcpV2RefLib
 {
 	std::queue<CAudioContainer*> CMrcpAudioStream::m_bufferQueue;
-	boost::mutex CMrcpAudioStream::m_bufferOutboundQueueMutex;
-	boost::mutex CMrcpAudioStream::m_bufferOutboundQueueConditionMutex;
-	boost::mutex CMrcpAudioStream::m_staticParamSetMutex;
-	boost::condition CMrcpAudioStream::m_bufferOutboundQueueCondition;
-//	boost::shared_ptr<boost::thread> CMrcpAudioStream::m_bufferOutboundQueueProcessingThread;
+	std::mutex CMrcpAudioStream::m_bufferOutboundQueueMutex;
+	std::mutex CMrcpAudioStream::m_bufferOutboundQueueConditionMutex;
+	std::mutex CMrcpAudioStream::m_staticParamSetMutex;
+	std::condition_variable CMrcpAudioStream::m_bufferOutboundQueueCondition;
+//	std::shared_ptr<std::thread> CMrcpAudioStream::m_bufferOutboundQueueProcessingThread;
 	bool CMrcpAudioStream::m_mangeBufferOutboundQueueFlag = false;
 	int CMrcpAudioStream::m_activeThreads = 0;
 
@@ -112,14 +113,14 @@ int CMrcpAudioStream::Start()
 /*	if (!m_bufferOutboundQueueProcessingThread)
 	{
 		{
-			boost::mutex::scoped_lock l_controlLock(m_staticParamSetMutex );	
+			std::lock_guard<std::mutex> l_controlLock(m_staticParamSetMutex );	
 			m_mangeBufferOutboundQueueFlag = true;
-			m_bufferOutboundQueueProcessingThread = boost::shared_ptr<boost::thread>(new boost::thread(ManageOutboundQueueFunction(this)));
+			m_bufferOutboundQueueProcessingThread = std::shared_ptr<std::thread>(new std::thread(ManageOutboundQueueFunction(this)));
 		}
 	}
 	*/
 	{
-		boost::mutex::scoped_lock l_controlLock(m_staticParamSetMutex );
+		std::lock_guard<std::mutex> l_controlLock(m_staticParamSetMutex );
 		m_activeThreads++;
 	}
 
@@ -143,7 +144,7 @@ int CMrcpAudioStream::Stop()
 	if(m_state == AUDIO_STOPPING && m_activeThreads == 1)
 	{
 		{
-		boost::mutex::scoped_lock l_controlLock(m_bufferOutboundQueueMutex );
+		std::lock_guard<std::mutex> l_controlLock(m_bufferOutboundQueueMutex );
 	/*		m_mangeBufferOutboundQueueFlag = false;
 			m_bufferOutboundQueueCondition.notify_one();
 			m_bufferOutboundQueueProcessingThread->join();
@@ -153,7 +154,7 @@ int CMrcpAudioStream::Stop()
 		}
 	}
 	{
-		boost::mutex::scoped_lock l_controlLock(m_staticParamSetMutex );
+		std::lock_guard<std::mutex> l_controlLock(m_staticParamSetMutex );
 		m_activeThreads--;
 	}
 
@@ -223,7 +224,7 @@ int CMrcpAudioStream::AddToOutboundAudioStream(std::string a_buffer)
 	l_audioContainer->m_rtpObj = m_rtpObj; 
 
 	{ //scope for lock
-	boost::mutex::scoped_lock l_controlLock( m_bufferOutboundQueueMutex);
+	std::lock_guard<std::mutex> l_controlLock( m_bufferOutboundQueueMutex);
 		isStreamEmpty = m_bufferQueue.empty();
 		m_bufferQueue.push(l_audioContainer);
 	}
@@ -255,12 +256,12 @@ void CMrcpAudioStream::ManageOutboundAudioStream()
 	{
 		bool isStreamEmpty;
 		{ //scope for lock
-			boost::mutex::scoped_lock lock(m_bufferOutboundQueueMutex);
+			std::lock_guard<std::mutex> lock(m_bufferOutboundQueueMutex);
 			isStreamEmpty = m_bufferQueue.empty(); 
 		}
 		if (isStreamEmpty)
 		{
-			boost::mutex::scoped_lock lock(m_bufferOutboundQueueConditionMutex);
+			std::unique_lock<std::mutex> lock(m_bufferOutboundQueueConditionMutex);
 			m_bufferOutboundQueueCondition.wait(lock);
 			if (!m_mangeBufferOutboundQueueFlag)
 			{
@@ -271,7 +272,7 @@ void CMrcpAudioStream::ManageOutboundAudioStream()
 		do
 		{
 				{
-				boost::mutex::scoped_lock lock(m_bufferOutboundQueueMutex);
+				std::lock_guard<std::mutex> lock(m_bufferOutboundQueueMutex);
 					l_audio = m_bufferQueue.front();
 					m_bufferQueue.pop();
 					isStreamEmpty = m_bufferQueue.empty();

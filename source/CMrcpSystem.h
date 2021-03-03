@@ -45,7 +45,8 @@
 #ifndef CMrcpSystem_H
 #define CMrcpSystem_H
 
-#include <boost/thread/mutex.hpp>
+//#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <map>
 
 #include "singleton.h"
@@ -132,7 +133,7 @@ namespace MrcpV2RefLib
 
 		MrcpSystemStateEnum m_state;
 
-		boost::mutex m_controlMutex;
+		std::mutex m_controlMutex;
 		std::string m_className;
 	    std::string m_name;
 

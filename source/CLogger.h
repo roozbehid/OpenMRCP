@@ -29,10 +29,10 @@
 #ifndef CLogger_h
 #define CLogger_h
 
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/condition.hpp>
+//#include <boost/std::shared_ptr.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/thread/thread.hpp>
+//#include <boost/thread/condition.hpp>
 
 #include "LoggerDefs.h"
 #include "TypeDefs.h"
@@ -42,6 +42,9 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <mutex>
+#include <memory>
+#include <condition_variable>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Enumeration: ::LoggerStateEnum
@@ -104,11 +107,11 @@ private:
    static const char* LogObjectLevelID[];
 
    LoggerStateEnum m_state;
-   boost::shared_ptr<boost::thread> m_thread;
-   boost::mutex m_controlMutex;
-   boost::mutex m_queueMutex;
-   boost::mutex m_semaphoreMutex;
-   boost::condition m_semaphore;
+   std::shared_ptr<std::thread> m_thread;
+   std::mutex m_controlMutex;
+   std::mutex m_queueMutex;
+   std::mutex m_semaphoreMutex;
+   std::condition_variable m_semaphore;
    std::queue< LogItemSptr> m_queue;
    std::ofstream m_logfile;
    LogLevelEnum m_logLevel;

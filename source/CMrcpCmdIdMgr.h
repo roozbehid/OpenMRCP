@@ -45,10 +45,11 @@
 #ifndef CMrcpCmdIdMgr_h
 #define CMrcpCmdIdMgr_h
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/thread/condition.hpp>
 
 #include <map>
+#include <mutex>
 #include "Singleton.h"
 #include "ClientInterfaceDefs.h"
 #include "CLogger.h"
@@ -84,8 +85,8 @@ namespace MrcpV2RefLib
 		typedef std::map<long, MrcpCallBackFunction> CmdByIDMap;
 		CmdByIDMap m_cmdIdMap;
 
-		boost::mutex m_controlMutex;
-		boost::mutex m_criticalSection;
+		std::mutex m_controlMutex;
+		std::mutex m_criticalSection;
 
 		int m_sequenceID;
 		int m_recSeqId;

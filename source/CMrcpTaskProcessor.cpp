@@ -47,6 +47,7 @@
 //	Date		Initial 	Description
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
+//  3/3/21		Roozbeh G	Boost removal
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -58,15 +59,19 @@
 #include <queue>
 #include <map>
 
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-#include <boost/bind.hpp>
+//#include <boost/thread/thread.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/thread/condition.hpp>
+//#include <boost/bind.hpp>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
 namespace MrcpV2RefLib
 {
    CMrcpTaskProcessor::CMrcpTaskProcessorByStringMap CMrcpTaskProcessor::m_taskProcessors;
-   boost::mutex CMrcpTaskProcessor::m_singleton;
+   std::mutex CMrcpTaskProcessor::m_singleton;
 
 ////////////////////////////////////////////////////////////////////////// 
 //
@@ -100,7 +105,7 @@ CMrcpTaskProcessor::~CMrcpTaskProcessor()
 
 	if ((l_pos = m_taskProcessors.find(m_idString)) != m_taskProcessors.end())
 	{
-		boost::mutex::scoped_lock l_lock( m_singleton);
+		std::lock_guard<std::mutex> l_lock( m_singleton);
 		m_taskProcessors.erase(m_idString);
 	}
 }
@@ -120,7 +125,7 @@ CMrcpTaskProcessor* CMrcpTaskProcessor::Instance(std::string a_idString)
 
 	if ((l_pos = m_taskProcessors.find(a_idString)) == m_taskProcessors.end())
 	{
-		boost::mutex::scoped_lock l_lock( m_singleton);
+		std::lock_guard<std::mutex> l_lock( m_singleton);
 		if ((l_pos = m_taskProcessors.find(a_idString)) == m_taskProcessors.end())
 		{
 			l_taskProcessor = new CMrcpTaskProcessor(a_idString);
@@ -150,7 +155,7 @@ int CMrcpTaskProcessor::Start()
 	Name("Start");
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
 
 		if ( EventProcessorRunning())
 		{
@@ -159,7 +164,7 @@ int CMrcpTaskProcessor::Start()
 			return -1;
 		}
 	    EventProcessorRunning(true);
-		m_thread = boost::shared_ptr<boost::thread> (new boost::thread( boost::bind( &CMrcpTaskProcessor::ProcessTasks, this)));
+		m_thread = std::shared_ptr<std::thread> (new std::thread( std::bind( &CMrcpTaskProcessor::ProcessTasks, this)));
    }
    while (!EventProcessorRunning())
    {
@@ -183,7 +188,7 @@ int CMrcpTaskProcessor::Stop()
 	  Name("Stop");
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
 		if ( !EventProcessorRunning() )
 		{
 	         std::string l_statusInfo = "Error Stopping Task Processor: " + m_idString;
@@ -214,7 +219,7 @@ int CMrcpTaskProcessor::QueueTask( MrcpTasks* a_mrcpTask)
    if ( EventProcessorRunning())
    {
       { // scope for lock
-         boost::mutex::scoped_lock l_lock( m_queueMutex);
+         std::lock_guard<std::mutex> l_lock( m_queueMutex);
          m_queue.push( a_mrcpTask);
       }
       m_semaphore.notify_one();
@@ -241,13 +246,13 @@ void CMrcpTaskProcessor::ProcessTasks()
 {
    Name("ProcessTasks");
 	MrcpTasks* l_task;
-   boost::mutex::scoped_lock semaphoreLock( m_semaphoreMutex);
+   std::unique_lock<std::mutex> semaphoreLock( m_semaphoreMutex);
 
    std::string l_statusInfo = "Entering Processing Thread: " + m_idString;
    CLogger::Instance()->Log( LOG_LEVEL_INFO, *this, l_statusInfo);
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
       EventProcessorRunning(true);
    }
    while( EventProcessorRunning())
@@ -258,7 +263,7 @@ void CMrcpTaskProcessor::ProcessTasks()
       }
 
       {  // scope for lock
-         boost::mutex::scoped_lock l_queueLock( m_queueMutex);
+         std::lock_guard<std::mutex> l_queueLock( m_queueMutex);
          if ( !m_queue.empty ())
          {
             l_task = m_queue.front();

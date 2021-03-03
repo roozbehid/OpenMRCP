@@ -52,10 +52,11 @@
 #include <map>
 #include <winsock2.h>
 
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-#include <boost/bind.hpp>
+#include <thread>
+#include <mutex>
+//#include <boost/thread/condition.hpp>
+//#include <boost/bind.hpp>
+#include <functional>
 
 namespace MrcpV2RefLib
 {
@@ -87,8 +88,8 @@ namespace MrcpV2RefLib
 		CMrcpSession* m_session;
 		CMrcpCmdIdMgr* m_cmdIdMgr;
 
-		boost::shared_ptr<boost::thread> m_sipThread;
-		boost::shared_ptr<boost::thread>m_commandThread;
+		std::shared_ptr<std::thread> m_sipThread;
+		std::shared_ptr<std::thread>m_commandThread;
 
 		typedef struct sipInfoStruct
 		{
@@ -117,14 +118,14 @@ namespace MrcpV2RefLib
 	   int StartCommandListenThread();
 	   int ProcessCommandThreadEvents();
 
-	   boost::mutex m_controlMutex;
-	   boost::mutex m_commandMutex;
-       boost::mutex m_semaphoreMutex;
-	   boost::mutex m_semaphore2Mutex;
+	   std::mutex m_controlMutex;
+	   std::mutex m_commandMutex;
+       std::mutex m_semaphoreMutex;
+	   std::mutex m_semaphore2Mutex;
 
 	   MrcpCallBackFunction m_defaultCallBack;
 	   
-       boost::condition m_semaphore;
+       std::condition_variable m_semaphore;
 	   bool m_sipEventReceiverRunning;
 	   bool m_commandEventReceiverRunning;
 	   bool m_asrResource;

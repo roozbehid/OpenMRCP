@@ -53,6 +53,7 @@
 //	Date		Initial 	Description
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpRtspSignal.h"
@@ -197,7 +198,7 @@ int CMrcpRtspSignal::PrimOnSignalingStarted()
 
 		int l_rc = 0;
 		{
-			boost::mutex::scoped_lock lock( m_controlMutex);	
+			std::lock_guard<std::mutex> lock( m_controlMutex);	
 //			rc = MrcpUtils::TcpSend( m_mrcpCommandSocket, message.c_str(), message.size());
 		}
 

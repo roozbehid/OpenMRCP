@@ -49,6 +49,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  4/1/07      TMB         removed RemoveObserver - function in unregister
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AMrcpObserverSubject.h"
@@ -94,7 +95,7 @@ namespace MrcpV2RefLib
 void AMrcpObserverSubject::RegisterForNotification(AMrcpEventHandler* a_observer, int a_notificationID)
 {
 
-    boost::mutex::scoped_lock lock(m_observerMutex);
+    std::lock_guard<std::mutex> lock(m_observerMutex);
 
 	AMrcpNotificationListMap::iterator l_observerList;
 
@@ -123,7 +124,7 @@ void AMrcpObserverSubject::RegisterForNotification(AMrcpEventHandler* a_observer
 
 void AMrcpObserverSubject::Unregister(AMrcpEventHandler* a_observer, int a_notificationID)
 {
-	boost::mutex::scoped_lock lock(m_observerMutex);
+	std::lock_guard<std::mutex> lock(m_observerMutex);
 
     AMrcpNotificationListMap::iterator l_observerList;
 

@@ -49,11 +49,14 @@
 #include "AMrcpObserverSubject.h"
 
 #include <winsock2.h>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/condition.hpp>
+//#include <boost/bind.hpp>
+//#include <boost/std::shared_ptr.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/thread/thread.hpp>
+//#include <boost/thread/condition.hpp>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -130,10 +133,10 @@ namespace MrcpV2RefLib
 
 		RESOURCE_CFG_STRUCT* m_resourceCfg;
 
-	    boost::shared_ptr<boost::thread> m_outboundThread;
-	    boost::shared_ptr<boost::thread> m_inboundThread;
-		boost::mutex m_controlMutex;
-		boost::condition m_semaphore;
+	    std::shared_ptr<std::thread> m_outboundThread;
+	    std::shared_ptr<std::thread> m_inboundThread;
+		std::mutex m_controlMutex;
+		std::condition_variable m_semaphore;
 
 		std::string m_className;
 	    std::string m_name;

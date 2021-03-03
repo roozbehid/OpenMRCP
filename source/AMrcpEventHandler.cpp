@@ -43,6 +43,7 @@
 //	----		------- 	-----------
 //	6/21/06 	TMB 		Initial Version
 //  4/1/07      TMB         Clean up 
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AMrcpEventHandler.h"
@@ -83,7 +84,7 @@ namespace MrcpV2RefLib
 //          This method queues the CMrcpEvent object received into the
 //          task queue for processing
 ///////////////////////////////////////////////////////////////////////////
- AMrcpEventHandler::PostEvent(CMrcpEvent* a_event)
+ int AMrcpEventHandler::PostEvent(CMrcpEvent* a_event)
  {
 	return m_mrcpTaskProcessor->QueueTask(a_event);
  }

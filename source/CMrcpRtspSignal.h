@@ -69,7 +69,7 @@ namespace MrcpV2RefLib
 		std::string setup_rtsp_hdr; 
 
 	private:
-		boost::mutex m_controlMutex;
+		std::mutex m_controlMutex;
 
 
 	   int PrimStart();

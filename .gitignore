@@ -31,3 +31,4 @@
 *.out
 *.app
 /.vs/MrcpV2ClientLibrary/v16
+/source/Debug

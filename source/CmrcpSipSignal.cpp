@@ -59,6 +59,7 @@
 //  1/2/07      TMB         Modified to return handles in callback structure
 //  4/1/07      TMB         Cleanup
 //  8/3/07      TMB         Move setting of rand seed to constructor
+//  3/3/21		Roozbeh G	Boost removal
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CMrcpSipSignal.h"
@@ -452,7 +453,7 @@ int	CMrcpSipSignal::PrimSendCommand(const std::string& a_message)//
 	}
 	int l_rc;
 	{
-		boost::mutex::scoped_lock lock( m_controlMutex);	
+		std::lock_guard<std::mutex> lock( m_controlMutex);	
 		l_rc = MrcpUtils::TcpSend( l_mrcpSocket, a_message.c_str(), a_message.size());
 	}
 
@@ -566,15 +567,15 @@ int CMrcpSipSignal::StartSipListenThread()
 	CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Entering");
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
       if ( IsSipEventReceiverRunning())
       {
 	  	 CLogger::Instance()->Log( LOG_LEVEL_WARNING,*this, "Already running");
          return -1;
       }
    }
-//boost::shared_ptr<boost::thread>
-   m_sipThread = boost::shared_ptr<boost::thread>(new boost::thread( boost::bind( &CMrcpSipSignal::ProcessSipThreadEvents, this)));	
+//std::shared_ptr<std::thread>
+   m_sipThread = std::shared_ptr<std::thread>(new std::thread( std::bind( &CMrcpSipSignal::ProcessSipThreadEvents, this)));	
    if (!m_sipThread)
 	{	    
 		CLogger::Instance()->Log( LOG_LEVEL_ERROR,*this, "Thread not started");
@@ -602,10 +603,10 @@ int CMrcpSipSignal::ProcessSipThreadEvents()
 	std::string l_bufferReceived;
 	std::string::size_type l_statPos;
 
-   boost::mutex::scoped_lock semaphoreLock( m_semaphoreMutex);
+   std::lock_guard<std::mutex> semaphoreLock( m_semaphoreMutex);
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
       m_sipEventReceiverRunning = true;
    }
 
@@ -670,7 +671,7 @@ int CMrcpSipSignal::StartCommandListenThread()
 	CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Entering");
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_controlMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_controlMutex);
       if ( IsCommandEventReceiverRunning())
       {
 		CLogger::Instance()->Log( LOG_LEVEL_WARNING,*this, "Command Listen Thread already running");
@@ -678,7 +679,7 @@ int CMrcpSipSignal::StartCommandListenThread()
       }
    }
 
-   m_commandThread = boost::shared_ptr<boost::thread> ( new boost::thread( boost::bind( &CMrcpSipSignal::ProcessCommandThreadEvents, this)));
+   m_commandThread = std::shared_ptr<std::thread> ( new std::thread( std::bind( &CMrcpSipSignal::ProcessCommandThreadEvents, this)));
 	if (!m_commandThread)
 	{
 	    CLogger::Instance()->Log( LOG_LEVEL_ERROR,*this, "Error creating thread");
@@ -705,11 +706,11 @@ int CMrcpSipSignal::ProcessCommandThreadEvents()
 	char l_buff[10000];
 	std::string l_bufferReceived;
 
-   boost::mutex::scoped_lock semaphoreLock( m_semaphore2Mutex);
+   std::lock_guard<std::mutex> semaphoreLock( m_semaphore2Mutex);
    memset(l_buff,0,sizeof(l_buff));
 
    { // scope for lock
-      boost::mutex::scoped_lock l_controlLock( m_commandMutex);
+      std::lock_guard<std::mutex> l_controlLock( m_commandMutex);
       m_commandEventReceiverRunning = true;
    }
 
