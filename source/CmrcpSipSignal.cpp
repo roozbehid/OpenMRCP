@@ -188,6 +188,7 @@ int	CMrcpSipSignal::PrimConnect()
 	Name("PrimConnect");
 	CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Entering");
 
+	srand(time(NULL));
 	long l_callID = (rand());
 	m_callIDVal = MrcpUtils::itos(l_callID) + "F2145@";
 	m_callFromVal = MrcpUtils::itos(l_callID) + "214522";
@@ -200,12 +201,12 @@ int	CMrcpSipSignal::PrimConnect()
 	itoa(m_serverPort, l_serverPort, 10);
 
 	std::string l_src1 = "INVITE sip:mresources@"+ m_serverAddress +":"+ l_serverPort +" SIP/2.0" M_ENDL;
-	l_src1 += "via: SIP/2.0/TCP;branch=" + m_callBranchVal + "" M_ENDL;
+	l_src1 += "via: SIP/2.0/TCP Mrcpv2Client;branch=" + m_callBranchVal + "" M_ENDL;
 	l_src1 += "Max-Forwards: 6" M_ENDL;
-	l_src1 += "To: <sip:"+ m_serverAddress +">" M_ENDL;
+	l_src1 += "To: MediaServer <sip:mresources@"+ m_serverAddress +":"+ l_serverPort +">" M_ENDL;//MediaServer <sip:mresources@205.214.15.94:5060>
 	l_src1 += "From: \"MrcpClient\"<sip:"+m_clientAddress+">;tag=" + m_callFromVal +""  M_ENDL;
 
-	l_src1 += "Contact: <Sip:" + m_clientAddress + ":"+l_serverPort + ">" M_ENDL;
+	l_src1 += "Contact: <Sip:" + m_clientAddress + ":"+l_serverPort + ";transport=TCP>" M_ENDL;
 	l_src1 += "Call-ID: "+ m_callIDVal + m_clientAddress + M_ENDL;
 	l_src1 += "CSeq: "+ MrcpUtils::itos(m_cSeq) + " INVITE" M_ENDL;
 	l_src1 += "Content-Type: application/sdp" M_ENDL;
@@ -233,7 +234,7 @@ int	CMrcpSipSignal::PrimConnect()
 	}
 	l_src2 += "m=audio " + MrcpUtils::itos(m_clientRtpPort) +" RTP/AVP 0 96" M_ENDL;
 	l_src2 += "a=rtpmap:0 pcmu/8000" M_ENDL;
-	l_src2 += "a=rtpmap:96 telephone-event/8000" M_ENDL;
+	l_src2 += "a=rtpmap:96 l16/8000" M_ENDL;
 	if (l_allResourcesRequested)
 		l_src2 += "a=sendrecv" M_ENDL; 
 	else if(m_asrResource)
@@ -266,7 +267,7 @@ int	CMrcpSipSignal::PrimConnect()
 int	CMrcpSipSignal::PrimSendAck()
 {	
 	std::string Astr = "ACK sip:"+m_serverAddress +":" + MrcpUtils::itos((int)m_mrcpSetupSocket) + " SIP/2.0" M_ENDL;
-				Astr += "via: SIP/2.0/TCP;branch=" + m_callBranchVal + "" M_ENDL;
+				Astr += "via: SIP/2.0/TCP Mrcpv2Client;branch=" + m_callBranchVal + "" M_ENDL;
 				Astr += "Content-Length: 0" M_ENDL;
 				Astr += "Call-ID: "+ m_callIDVal + m_clientAddress + M_ENDL;
 			    Astr += "CSeq: "+ MrcpUtils::itos(m_cSeq) +" ACK" M_ENDL;
@@ -391,7 +392,7 @@ int	CMrcpSipSignal::PrimReinvite(MrcpResourceType a_resourceToAdd)
 	itoa(m_serverPort,l_serverSignalPort,10);
 	
 	std::string l_src1 = "INVITE sip:mresources@"+ m_serverAddress +":"+l_serverSignalPort +" SIP/2.0" M_ENDL;
-	l_src1 += "via: SIP/2.0/TCP;branch=" + m_callBranchVal + "" M_ENDL;
+	l_src1 += "via: SIP/2.0/TCP Mrcpv2Client;branch=" + m_callBranchVal + "" M_ENDL;
 	l_src1 += "Max-Forwards: 6" M_ENDL;
 	l_src1 += "To: <sip:"+ m_serverAddress +">" M_ENDL;
 	l_src1 += "From: \"MrcpClient\"<sip:"+m_clientAddress+">;tag=" + m_callFromVal +""  M_ENDL;

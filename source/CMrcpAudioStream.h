@@ -80,6 +80,7 @@ namespace MrcpV2RefLib
 		virtual ~CMrcpAudioStream();
 		int AddToInboundAudioStream(std::string a_buuferToAdd);
 		int AddToOutboundAudioStream(std::string a_buuferToAdd);
+		int OutboundAudioStreamUtteranceFinished();
 
 		int Stop();
 		int Start();
