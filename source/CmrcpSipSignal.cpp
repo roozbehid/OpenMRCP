@@ -175,6 +175,17 @@ int CMrcpSipSignal::PrimOnSignalingStarted()
 	return MrcpSuccess;
 }
 
+/* Thread-safe function that returns a random number between min and max (inclusive).
+This function takes ~142% the time that calling rand() would take. For this extra
+cost you get a better uniform distribution and thread-safety. */
+// We are leaking per thread a generator. It should be fine
+int intRand(const int& min, const int& max) {
+	static __declspec(thread) std::mt19937* generator = nullptr;
+	if (!generator) generator = new std::mt19937(clock() + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+	std::uniform_int_distribution<int> distribution(min, max);
+	return distribution(*generator);
+}
+
 //////////////////////////////////////////////////////////////////////////////// 
 //
 // Description - PrimConnect - will queue a SIP invite command for processing
@@ -188,7 +199,7 @@ int	CMrcpSipSignal::PrimConnect()
 	Name("PrimConnect");
 	CLogger::Instance()->Log( LOG_LEVEL_INFO,*this, "Entering");
 
-	long l_callID = (rand());
+	long l_callID = intRand(0, INT_MAX);
 	m_callIDVal = MrcpUtils::itos(l_callID) + "F2145@";
 	m_callFromVal = MrcpUtils::itos(l_callID) + "214522";
 	m_callBranchVal = "z9hg4bk0a" + MrcpUtils::itos(l_callID);

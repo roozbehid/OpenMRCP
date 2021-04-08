@@ -134,7 +134,8 @@ LogItemSptr CLogger::SourceInfoMessageHeader( LogLevelEnum a_logLevel, TSource& 
 {
    LogItemSptr l_logItem = BasicMessageHeader( a_logLevel);
    
-   *l_logItem << fmt_str("%20.20s ! %20.20s ! %s::%s: ", a_source.Name(), a_source.StateDesc(), a_source.ClassName(), a_methodName);
+   //*l_logItem << fmt_str("%20.20s ! %20.20s ! %s::%s: ", a_source.Name(), a_source.StateDesc(), a_source.ClassName(), a_methodName);
+      *l_logItem << std::string(a_source.Name()) << " " << std::string(a_source.StateDesc()) << " " << std::string(a_source.ClassName()) << " " << std::string(a_methodName);
    return l_logItem;
 }
 
