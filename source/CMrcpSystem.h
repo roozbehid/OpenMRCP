@@ -107,7 +107,7 @@ namespace MrcpV2RefLib
 		int GetParams(MrcpSessionHandle a_sessionHandle, MrcpCallBackFunction a_callBack, GET_PARAMETERS a_parameters, int& a_referenceNum);
 		int SetParams(MrcpSessionHandle a_sessionHandle, MrcpCallBackFunction a_callBack, SET_PARAMETERS a_parameters, int& a_referenceNum);
 		////////
-		int AddOutboundAudio(MrcpAudioHandle a_audioHandle, char& a_audioBuffer);
+		int AddOutboundAudio(MrcpAudioHandle a_audioHandle, char& a_audioBuffer, int audioBufferSize = -1);
 		int StartAudio(MrcpAudioHandle a_audioHandle);
 		int StopAudio(MrcpAudioHandle a_audioHandle);
 

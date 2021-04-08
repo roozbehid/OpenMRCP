@@ -85,6 +85,7 @@ namespace MrcpV2RefLib
 
 		recognize_2 = 
 		"MRCP/2.0 (1) RECOGNIZE (2)" MRCP_ENDL
+		"Speech-Language: en-US" MRCP_ENDL
 		"Cancel-If-Queue: (3)" MRCP_ENDL
 		"Channel-Identifier: (4)" MRCP_ENDL
 		"Content-Type: (5)" MRCP_ENDL

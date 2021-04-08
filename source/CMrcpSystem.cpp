@@ -674,7 +674,7 @@ int CMrcpSystem::SetParams(MrcpSessionHandle a_sessionHandle, MrcpCallBackFuncti
 //           
 //          
 ///////////////////////////////////////////////////////////////////////////
-int CMrcpSystem::AddOutboundAudio(MrcpAudioHandle a_audioHandle, char& a_audioBuffer)
+int CMrcpSystem::AddOutboundAudio(MrcpAudioHandle a_audioHandle, char& a_audioBuffer, int audioBufferSize)
 {
 	Name("AddOutboundAudio");
 	CMrcpAudioStream* l_mrcpAudioStream = NULL;
@@ -688,6 +688,9 @@ int CMrcpSystem::AddOutboundAudio(MrcpAudioHandle a_audioHandle, char& a_audioBu
 	std::string l_audioBuffer;
 	l_audioBuffer.erase();
     l_audioBuffer = &a_audioBuffer;
+	if (audioBufferSize != -1)
+		l_audioBuffer.resize(audioBufferSize);
+
 	int l_stat = l_mrcpAudioStream->AddToOutboundAudioStream(l_audioBuffer);
 
 	return MrcpSuccess;
@@ -740,6 +743,7 @@ int CMrcpSystem::StopAudio(MrcpAudioHandle a_audioHandle)
 		CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, "Audio pointer lookup failed");
 		return -1;
 	}
+	l_mrcpAudioStream->OutboundAudioStreamUtteranceFinished();
 	l_mrcpAudioStream->Stop();
 
 	return MrcpSuccess;

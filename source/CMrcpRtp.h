@@ -106,6 +106,7 @@ namespace MrcpV2RefLib
 		int OutboundPortSetup();
 		void ProcessInboundRtp();
 		void ProcessOutboundRtp(std::string a_buffer);
+		bool OutboundRTPSendBye();
 
 		SOCKET m_rtpSocket;
 		SOCKET m_rtcpSocket;

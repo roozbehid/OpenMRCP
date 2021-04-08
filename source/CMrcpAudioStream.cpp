@@ -197,6 +197,21 @@ int CMrcpAudioStream::AddToInboundAudioStream(std::string a_buffer)
 
 	return MrcpSuccess;
 }
+
+int CMrcpAudioStream::OutboundAudioStreamUtteranceFinished() {
+	Name("OutboundAudioStreamUtteranceFinished");
+	bool isStreamEmpty = true;
+	//	CAudioContainer* l_audioContainer;
+
+	if (m_state != AUDIO_STARTED)
+	{
+		CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, "Bad state - exiting");
+		return -1;
+	}
+
+	m_rtpObj->OutboundRTPSendBye();
+	return MrcpSuccess;
+}
 ////////////////////////////////////////////////////////////////////////// 
 // Description - AddToOutboundAudioStream 
 // Input - string containing an audio buffer

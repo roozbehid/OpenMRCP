@@ -314,6 +314,11 @@ int CMrcpRtp::OutboundPortSetup()
 	m_outRtpAddress.sin_addr.s_addr = inet_addr(m_resourceCfg->asrServerConfig->serverAddress);
 
 	// create rtcp socket
+	memset(&l_localAddr, 0, sizeof(l_localAddr));
+	l_localAddr.sin_port = htons(m_clientAsrRtpPort + 1);
+	l_localAddr.sin_family = AF_INET;
+	l_localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
 	l_rtcpSocket = socket ( AF_INET, SOCK_DGRAM, 0 ) ;
 	if ( l_rtcpSocket == INVALID_SOCKET )
 	{
@@ -323,10 +328,20 @@ int CMrcpRtp::OutboundPortSetup()
 		l_portSetupStatus = SocketError;
 		return l_portSetupStatus;
 	}
-			
+	else {
+		l_portSetupStatus = bind(l_rtcpSocket, (PSOCKADDR)&l_localAddr, sizeof(l_localAddr));
+		if (l_portSetupStatus != 0)
+		{
+			l_portSetupStatus = MrcpUtils::GetLastSocketError("CMrcpRtp::OutboundPortSetup - bind RTCP error");
+			l_errorMsg = "Port Setup Error - " + AsString(l_portSetupStatus);
+			CLogger::Instance()->Log(LOG_LEVEL_ERROR, *this, l_errorMsg);
+			l_portSetupStatus = SocketError;
+			return l_portSetupStatus;
+		}
+	}
 	memset ( &m_outRtcpAddress, 0, sizeof ( sockaddr_in ) );
 	m_outRtcpAddress.sin_family = AF_INET;
-	m_outRtcpAddress.sin_port = htons(l_rtcpSocket);
+	m_outRtcpAddress.sin_port = htons(m_basePort + 1);
 	m_outRtcpAddress.sin_addr.s_addr = inet_addr(m_resourceCfg->asrServerConfig->serverAddress);
 
 	m_clientRtpSocket = l_rtpSocket;
@@ -429,6 +444,327 @@ void CMrcpRtp::ProcessInboundRtp()
 //  called by the audio stream obejct when audio ready for sending to MRCP server
 //  adds rtp header to packets sent over socket
 ///////////////////////////////////////////////////////////////////////////////////
+/** RTCP payload (packet) types */
+typedef enum {
+	RTCP_SR = 200,
+	RTCP_RR = 201,
+	RTCP_SDES = 202,
+	RTCP_BYE = 203,
+	RTCP_APP = 204
+} rtcp_type_e;
+
+/** RTCP SDES types */
+typedef enum {
+	RTCP_SDES_END = 0,
+	RTCP_SDES_CNAME = 1,
+	RTCP_SDES_NAME = 2,
+	RTCP_SDES_EMAIL = 3,
+	RTCP_SDES_PHONE = 4,
+	RTCP_SDES_LOC = 5,
+	RTCP_SDES_TOOL = 6,
+	RTCP_SDES_NOTE = 7,
+	RTCP_SDES_PRIV = 8
+} rtcp_sdes_type_e;
+
+/** Protocol version */
+#define RTP_VERSION 2
+/** Max size of RTCP packet */
+#define MAX_RTCP_PACKET_SIZE 1500
+
+/** RTCP statistics used in Sender Report (SR) */
+typedef struct rtcp_sr_stat_t rtcp_sr_stat_t;
+/** RTCP statistics used in Receiver Report (RR) */
+typedef struct rtcp_rr_stat_t rtcp_rr_stat_t;
+/** RTCP header */
+struct rtcp_header_t {
+	/** varies by packet type */
+	unsigned int count : 5;
+	/** padding flag */
+	unsigned int padding : 1;
+	/** protocol version */
+	unsigned int version : 2;
+	/** packet type */
+	unsigned int pt : 8;
+
+	/** packet length in words, w/o this word */
+	unsigned int length : 16;
+};
+
+/** RTCP statistics used in Sender Report (SR)  */
+struct rtcp_sr_stat_t {
+	/** sender source identifier */
+	uint32_t ssrc;
+	/** NTP timestamp (seconds) */
+	uint32_t ntp_sec;
+	/** NTP timestamp (fractions) */
+	uint32_t ntp_frac;
+	/** RTP timestamp */
+	uint32_t rtp_ts;
+	/** packets sent */
+	uint32_t sent_packets;
+	/** octets (bytes) sent */
+	uint32_t sent_octets;
+};
+
+/** RTCP statistics used in Receiver Report (RR) */
+struct rtcp_rr_stat_t {
+	/** source identifier of RTP stream being received */
+	uint32_t ssrc;
+	/** fraction lost since last SR/RR */
+	uint32_t fraction : 8;
+	/** cumulative number of packets lost (signed!) */
+	int32_t  lost : 24;
+	/** extended last sequence number received */
+	uint32_t last_seq;
+	/** interarrival jitter (RFC3550) */
+	uint32_t jitter;
+	/** last SR packet from this source */
+	uint32_t lsr;
+	/** delay since last SR packet */
+	uint32_t dlsr;
+};
+
+
+/** SDES item */
+struct rtcp_sdes_item_t {
+	/** type of item (rtcp_sdes_type_t) */
+	int8_t type;
+	/** length of item (in octets) */
+	int8_t length;
+	/** text, not null-terminated */
+	char       data[1];
+};
+
+/** RTCP packet */
+struct rtcp_packet_t {
+	/** common header */
+	rtcp_header_t header;
+	/** union of RTCP reports */
+	union {
+		/** sender report (SR) */
+		struct {
+			/** sr stat */
+			rtcp_sr_stat_t sr_stat;
+			/** variable-length list rr stats */
+			rtcp_rr_stat_t rr_stat[1];
+		} sr;
+
+		/** reception report (RR) */
+		struct {
+			/** receiver generating this report */
+			uint32_t   ssrc;
+			/** variable-length list rr stats */
+			rtcp_rr_stat_t rr_stat[1];
+		} rr;
+
+		/** source description (SDES) */
+		struct {
+			/** first SSRC/CSRC */
+			uint32_t     ssrc;
+			/** list of SDES items */
+			rtcp_sdes_item_t item[1];
+		} sdes;
+
+		/** BYE */
+		struct {
+			/** list of sources */
+			uint32_t ssrc[1];
+			/* optional length of reason string (in octets) */
+			int8_t   length;
+			/* optional reason string, not null-terminated */
+			char         data[1];
+		} bye;
+	} r;
+};
+void rtcp_header_init(rtcp_header_t* header, rtcp_type_e pt)
+{
+	header->version = RTP_VERSION;
+	header->padding = 0;
+	header->count = 0;
+	header->pt = pt;
+	header->length = 0;
+}
+
+void rtcp_rr_hton(rtcp_rr_stat_t* rr_stat)
+{
+	rr_stat->ssrc = htonl(rr_stat->ssrc);
+	rr_stat->last_seq = htonl(rr_stat->last_seq);
+	rr_stat->jitter = htonl(rr_stat->jitter);
+
+//#if (APR_IS_BIGENDIAN == 0)
+	rr_stat->lost = ((rr_stat->lost >> 16) & 0x000000ff) |
+		(rr_stat->lost & 0x0000ff00) |
+		((rr_stat->lost << 16) & 0x00ff0000);
+//#endif
+}
+
+void rtcp_rr_ntoh(rtcp_rr_stat_t* rr_stat)
+{
+	rr_stat->ssrc = ntohl(rr_stat->ssrc);
+	rr_stat->last_seq = ntohl(rr_stat->last_seq);
+	rr_stat->jitter = ntohl(rr_stat->jitter);
+
+//#if (APR_IS_BIGENDIAN == 0)
+	rr_stat->lost = ((rr_stat->lost >> 16) & 0x000000ff) |
+		(rr_stat->lost & 0x0000ff00) |
+		((rr_stat->lost << 16) & 0x00ff0000);
+//#endif
+}
+
+ void rtcp_header_length_set(rtcp_header_t* header, size_t length)
+{
+	header->length = htons((uint16_t)length / 4 - 1);
+}
+
+size_t rtcp_bye_generate(uint32_t ssrc, rtcp_packet_t* rtcp_packet, size_t length, std::string reason)
+{
+	size_t offset = 0;
+	rtcp_header_init(&rtcp_packet->header, RTCP_BYE);
+	offset += sizeof(rtcp_header_t);
+
+	rtcp_packet->r.bye.ssrc[0] = htonl(ssrc);
+	rtcp_packet->header.count++;
+	offset += rtcp_packet->header.count * sizeof(uint32_t);
+
+	if (reason.length()) {
+		size_t padding;
+
+		memcpy(rtcp_packet->r.bye.data, reason.c_str(), reason.length());
+		rtcp_packet->r.bye.length = (int8_t)reason.length();
+		offset += rtcp_packet->r.bye.length;
+
+		/* terminate with end marker and pad to next 4-octet boundary */
+		padding = 4 - (reason.length() & 0x3);
+		if (padding) {
+			char* end = rtcp_packet->r.bye.data + reason.length();
+			memset(end, 0, padding);
+			offset += padding;
+		}
+	}
+
+	rtcp_header_length_set(&rtcp_packet->header, offset);
+	return offset;
+}
+
+void rtcp_sr_generate(rtcp_sr_stat_t* sr_stat)
+{
+	///*sr_stat = rtp_stream->transmitter.sr_stat;
+	///apt_ntp_time_get(&sr_stat->ntp_sec, &sr_stat->ntp_frac);
+	///sr_stat->rtp_ts = rtp_stream->transmitter.timestamp;
+
+	/*apt_log(MPF_LOG_MARK, APT_PRIO_INFO, "Generate RTCP SR [ssrc:%u s:%u o:%u ts:%u]",
+		sr_stat->ssrc,
+		sr_stat->sent_packets,
+		sr_stat->sent_octets,
+		sr_stat->rtp_ts);*/
+	///rtcp_sr_hton(sr_stat);
+}
+
+/* Generate either RTCP SR or RTCP RR packet */
+static size_t rtcp_report_generate(uint32_t ssrc, rtcp_packet_t* rtcp_packet, size_t length)
+{
+	size_t offset = 0;
+	rtcp_header_init(&rtcp_packet->header, RTCP_RR);
+	//if (rtp_stream->base->direction & STREAM_DIRECTION_SEND) {
+	rtcp_packet->header.pt = RTCP_SR;
+	//}
+
+	offset += sizeof(rtcp_header_t);
+
+	rtcp_sr_generate(&rtcp_packet->r.sr.sr_stat);
+	offset += sizeof(rtcp_sr_stat_t);
+	if (rtcp_packet->header.count) {
+		///rtcp_rr_generate(rtcp_packet->r.sr.rr_stat);
+		offset += sizeof(rtcp_rr_stat_t);
+	}
+
+	rtcp_header_length_set(&rtcp_packet->header, offset);
+	return offset;
+}
+
+/* Generate RTCP SDES packet */
+static size_t rtcp_sdes_generate(uint32_t ssrc, rtcp_packet_t* rtcp_packet, size_t length)
+{
+	rtcp_sdes_item_t* item;
+	size_t offset = 0;
+	size_t padding;
+	rtcp_header_init(&rtcp_packet->header, RTCP_SDES);
+	offset += sizeof(rtcp_header_t);
+
+	rtcp_packet->header.count++;
+	rtcp_packet->r.sdes.ssrc = htonl(ssrc);
+	offset += sizeof(uint32_t);
+
+	/* insert SDES CNAME item */
+	item = &rtcp_packet->r.sdes.item[0];
+	item->type = RTCP_SDES_CNAME;
+	std::string tempCNAME = "179.12.12.12";
+	item->length = (int8_t)tempCNAME.length();
+	memcpy(item->data, tempCNAME.c_str(), item->length);
+	offset += sizeof(rtcp_sdes_item_t) - 1 + item->length;
+
+	/* terminate with end marker and pad to next 4-octet boundary */
+	padding = 4 - (offset & 0x3);
+	while (padding--) {
+		item = (rtcp_sdes_item_t*)((char*)rtcp_packet + offset);
+		item->type = RTCP_SDES_END;
+		offset++;
+	}
+
+	rtcp_header_length_set(&rtcp_packet->header, offset);
+	return offset;
+}
+
+bool CMrcpRtp::OutboundRTPSendBye() {
+	char buffer[MAX_RTCP_PACKET_SIZE];
+	int32_t ssrc = m_chanNum;
+	size_t length = 0;
+	rtcp_packet_t* rtcp_packet;
+	struct sockaddr* l_sockAddr = (struct sockaddr*)&m_outRtcpAddress;
+
+	if (m_state != RTP_CONNECTED)
+		return false;
+
+	//if (rtp_stream->base->direction != STREAM_DIRECTION_NONE) {
+		/* update periodic (prior) history */
+	//	rtp_periodic_history_update(&rtp_stream->receiver);
+	//}
+
+	rtcp_packet = (rtcp_packet_t*)(buffer + length);
+	length += rtcp_report_generate(ssrc, rtcp_packet, sizeof(buffer) - length);
+
+	rtcp_packet = (rtcp_packet_t*)(buffer + length);
+	length += rtcp_sdes_generate(ssrc, rtcp_packet, sizeof(buffer) - length);
+
+	rtcp_packet = (rtcp_packet_t*)(buffer + length);
+	length += rtcp_bye_generate(ssrc, rtcp_packet, sizeof(buffer) - length, "Program Ended.");
+
+	/*apt_log(MPF_LOG_MARK, APT_PRIO_INFO, "Send Compound RTCP Packet [BYE] [%"APR_SIZE_T_FMT" bytes] %s:%hu -> %s:%hu",
+		length,
+		rtp_stream->rtcp_l_sockaddr->hostname,
+		rtp_stream->rtcp_l_sockaddr->port,
+		rtp_stream->rtcp_r_sockaddr->hostname,
+		rtp_stream->rtcp_r_sockaddr->port);*/
+	int l_bytesSent = sendto(
+		m_clientRtcpSocket,
+		(char*)buffer,
+		length,
+		0,
+		l_sockAddr,
+		sizeof(struct sockaddr)	);
+	//int l_bytesSent = sendto(m_clientRtpSocket, (char*)l_thisPack, l_actualLen, 0, l_sockAddr, sizeof(struct sockaddr));
+	
+	{
+		/*apt_log(MPF_LOG_MARK, APT_PRIO_WARNING, "Failed to Send Compound RTCP Packet [BYE] [%"APR_SIZE_T_FMT" bytes] %s:%hu -> %s:%hu",
+			length,
+			rtp_stream->rtcp_l_sockaddr->hostname,
+			rtp_stream->rtcp_l_sockaddr->port,
+			rtp_stream->rtcp_r_sockaddr->hostname,
+			rtp_stream->rtcp_r_sockaddr->port);*/
+		//return FALSE;
+	}
+	return TRUE;
+}
 
 void CMrcpRtp::ProcessOutboundRtp(std::string a_buffer)
 {
